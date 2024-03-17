@@ -1,63 +1,133 @@
--- Initialize variables
-local box = {
-    x = 100,        -- Initial x-coordinate of the box
-    y = 100,        -- Initial y-coordinate of the box
-    size = 30,      -- Size of the box
-    speed = 300,    -- Speed of the box
-    vx = 1,         -- Initial velocity along the x-axis
-    vy = 1,         -- Initial velocity along the y-axis
-    r = 0,          -- Initial red value
-    g = 0,          -- Initial green value
-    b = 0,          -- Initial blue value
-    color = {r, g, b}, -- Initial color (black)
-    inc = 0.1       -- Color increment
+-- Example of a 20x20 game grid initialization with unmovable blocks on the perimeter
+local gameGrid = {}
+for y = 1, 20 do
+    gameGrid[y] = {}
+    for x = 1, 20 do
+        if x == 1 or x == 20 or y == 1 or y == 20 then
+            gameGrid[y][x] = 3  -- 3 represents an unmovable block
+        else
+            gameGrid[y][x] = 0  -- 0 represents an empty cell
+        end
+    end
+end
+
+
+-- Define the player character
+local player = {
+    x = 5,  -- Starting x position
+    y = 5,  -- Starting y position
+    type = 1  -- Identifier for the player, 1 in this case
 }
 
--- Disable clearing the screen
-love.graphics.clear = function() end
+gameGrid[player.y][player.x] = player.type
 
--- Initialize Love2D
-function love.load()
-    love.window.setTitle("Bouncing Box")
-    love.window.setMode(640, 480)
-    love.graphics.setBackgroundColor(0.01, 0.01, 0.01)
-end
 
--- Update function
-function love.update(dt)
-    -- Update box position based on velocity and speed
-    box.x = box.x + box.vx * box.speed * dt
-    box.y = box.y + box.vy * box.speed * dt
-    changeColor()
-
-    -- Check for collisions with the edges
-    if box.x <= 0 or (box.x + box.size) >= love.graphics.getWidth() then
-        box.vx = -box.vx -- Reverse x-velocity on collision
-    end
-    if box.y <= 0 or (box.y + box.size) >= love.graphics.getHeight() then
-        box.vy = -box.vy -- Reverse y-velocity on collision
-    end
-end
-
--- Draw function
+-- Define blocks in the grid
+local blocks = {
+    {x = 3, y = 3, type = 2},  -- Block 1
+    {x = 4, y = 3, type = 2},  -- Block 2
+    {x = 3, y = 4, type = 2},  -- Block 3
+    {x = 4, y = 4, type = 2}   -- Block 4
+}
 function love.draw()
-    love.graphics.setColor(box.color)
-    love.graphics.rectangle("fill", box.x, box.y, box.size, box.size)
+    for y = 1, #gameGrid do
+        for x = 1, #gameGrid[y] do
+            if gameGrid[y][x] == 1 then  -- Player
+                love.graphics.setColor(1, 0, 0)  -- Red color for the player
+                love.graphics.rectangle('fill', (x-1) * 32, (y-1) * 32, 32, 32)
+            elseif gameGrid[y][x] == 2 then  -- Movable Block
+                love.graphics.setColor(0, 0, 1)  -- Blue color for the block
+                love.graphics.rectangle('fill', (x-1) * 32, (y-1) * 32, 32, 32)
+            elseif gameGrid[y][x] == 3 then  -- Unmovable Block
+                love.graphics.setColor(0.5, 0.5, 0.5)  -- Gray color for unmovable block
+                love.graphics.rectangle('fill', (x-1) * 32, (y-1) * 32, 32, 32)
+            end
+        end
+    end
 end
 
--- Change box color
-function changeColor()
-    box.r = box.r + box.inc
-    if box.r > 1 then
-        box.r = 0
-        box.g = box.g + box.inc
+
+
+function moveTo(object, newX, newY)
+    -- Check bounds for the 20x20 grid
+    if newX < 1 or newX > 20 or newY < 1 or newY > 20 then
+        return false
     end
-    if box.g > 1 then
-        box.g = 0
-        box.b = box.b + box.inc
+
+    local nextCell = gameGrid[newY][newX]
+
+    -- Check if the next cell contains a block and try to push it
+    if nextCell == 2 then
+        local pushX = newX + (newX - object.x)
+        local pushY = newY + (newY - object.y)
+
+        -- Check if the position beyond the block is empty and within bounds
+        if pushX < 1 or pushX > 20 or pushY < 1 or pushY > 20 or gameGrid[pushY][pushX] ~= 0 then
+            return false  -- Can't push the block, so don't move
+        else
+            -- Move the block
+            gameGrid[pushY][pushX] = 2
+            gameGrid[newY][newX] = 0
+        end
     end
-    if box.b > 1 then
-        box.b = 0
+
+    -- Check if the next cell is empty or has been cleared by pushing a block
+    if gameGrid[newY][newX] == 0 then
+        -- Move the object
+        gameGrid[object.y][object.x] = 0
+        object.x = newX
+        object.y = newY
+        gameGrid[newY][newX] = object.type
+        return true
     end
-    box.color = {box.r, box.g, box.b}
+
+    return false
+end
+
+
+-- Place the blocks on the grid
+for _, block in ipairs(blocks) do
+    gameGrid[block.y][block.x] = block.type
+end
+
+function canMoveTo(x, y)
+    -- Check bounds for the 20x20 grid
+    if x < 1 or x > 20 or y < 1 or y > 20 then
+        return false
+    end
+
+    return gameGrid[y][x] == 0
+end
+
+function moveTo(object, newX, newY)
+    if canMoveTo(newX, newY) then
+        -- Update the grid: Mark the old position as empty
+        gameGrid[object.y][object.x] = 0
+        -- Move the object
+        object.x = newX
+        object.y = newY
+        -- Update the grid with the object's new position
+        gameGrid[newY][newX] = object.type -- object.type could be an identifier for what the object is
+    end
+end
+
+function love.keypressed(key, scancode, isrepeat)
+    local dx, dy = 0, 0
+    if scancode == "d" then
+        dx = 1
+    elseif scancode == "a" then
+        dx = -1
+    elseif scancode == "s" then
+        dy = 1
+    elseif scancode == "w" then
+        dy = -1
+    end
+
+    local newX = player.x + dx
+    local newY = player.y + dy
+
+    -- Only move the player if the new position is within bounds
+    if canMoveTo(newX, newY) then
+        moveTo(player, newX, newY)
+    end
 end
