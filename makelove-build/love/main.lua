@@ -79,7 +79,7 @@ end
 
 
 function moveTo(object, newX, newY)
-    if newX < 1 or newX > 20 or newY < 1 or newY > 20 then
+    if newX < 1 or newX > xMax or newY < 1 or newY > yMax then
         return false
     end
 
@@ -90,7 +90,7 @@ function moveTo(object, newX, newY)
     elseif nextCell == 2 then  -- Check for movable blocks
         local pushX = newX + (newX - object.x)
         local pushY = newY + (newY - object.y)
-        if pushX < 1 or pushX > 20 or pushY < 1 or pushY > 20 or gameGrid[pushY][pushX] ~= 0 then
+        if pushX < 1 or pushX > xMax or pushY < 1 or pushY > yMax or gameGrid[pushY][pushX] ~= 0 then
             return false  -- Can't push the block, so don't move
         else
             -- Move the block
@@ -120,7 +120,7 @@ end
 
 function canMoveTo(x, y)
     -- Check bounds for the 20x20 grid
-    if x < 1 or x > 20 or y < 1 or y > 20 then
+    if x < 1 or x > xMax or y < 1 or y > yMax then
         return false
     end
 
@@ -142,13 +142,13 @@ end
 function love.keypressed(key, scancode, isrepeat)
     local dx, dy = 0, 0
     if scancode == "d" then
-        dx = 32
+        dx = 1
     elseif scancode == "a" then
-        dx = -32
+        dx = -1
     elseif scancode == "s" then
-        dy = 32
+        dy = 1
     elseif scancode == "w" then
-        dy = -32
+        dy = -1
     end
 
     local newX = player.x + dx
