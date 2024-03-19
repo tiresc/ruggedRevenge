@@ -17,6 +17,10 @@ end
 
 
 
+
+screen_width = love.graphics.getWidth()
+screen_height = love.graphics.getHeight()
+
 -- Define the player character
 local player = {
     x = 12,  -- Starting x position
@@ -26,7 +30,7 @@ local player = {
 -- Define blocks in the grid
 local blocks = {
     {x = 3, y = 3, type = 2},  -- Block 1
-    --{x = 4, y = 3, type = 2},  -- Block 2
+    {x = 6, y = 6, type = 2},  -- Block 2
     --{x = 3, y = 4, type = 2},  -- Block 3
     --{x = 4, y = 4, type = 2}   -- Block 4
 }
@@ -39,23 +43,31 @@ local cat = {
 gameGrid[cat.y][cat.x] = cat.type
 gameGrid[player.y][player.x] = player.type
 
+
+
+
 function love.update(dt)
-    -- This function is called once every frame, and 'dt' is the time in seconds since the last frame.
+    local speed = 100  -- Speed in pixels per second
 
-    -- Example: Update the player's or other objects' states
-    -- You could handle continuous movement, animations, game logic, etc., here.
+    -- Example movement logic for player
+    if love.keyboard.isDown("d") then
+        player.x = player.x + speed * dt
+    elseif love.keyboard.isDown("a") then
+        player.x = player.x - speed * dt
+    end
+    if love.keyboard.isDown("s") then
+        player.y = player.y + speed * dt
+    elseif love.keyboard.isDown("w") then
+        player.y = player.y - speed * dt
+    end
 
-    -- For now, let's just print the player's position for debugging purposes
-    -- In a real game, you would update positions, check for collisions, etc.
-    print("Player position:", player.x, player.y)
+    -- Ensure the player doesn't move out of bounds
+    player.x = math.max(1, math.min(player.x, xMax))
+    player.y = math.max(1, math.min(player.y, yMax))
 
-    -- If you have moving objects or animations, you would update their states here.
-    -- For example, if you want a block to move continuously or an enemy to follow a path,
-    -- you would calculate their new position based on 'dt' to ensure smooth movement.
-
-    -- If your game has time-based mechanics (like a timer, countdown, etc.), you would
-    -- update those here as well, decrementing the timer by 'dt' or similar logic.
+    -- Continue with other game updates
 end
+
 
 function love.draw()
     local cellSize = 32  -- Assuming each cell in the grid is 32x32 pixels
