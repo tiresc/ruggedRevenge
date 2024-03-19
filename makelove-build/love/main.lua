@@ -1,7 +1,8 @@
 -- Example of a 23x23 game grid initialization with unmovable blocks on the perimeter
-local xMax = 23;
-local yMax = 23;
-local gameGrid = {}
+local xMax = 23
+local yMax = 23
+local gameGrid = {}  -- Initialize gameGrid as an empty table
+
 for y = 1, yMax do
     gameGrid[y] = {}
     for x = 1, xMax do
@@ -14,6 +15,8 @@ for y = 1, yMax do
 end
 
 
+
+
 -- Define the player character
 local player = {
     x = 12,  -- Starting x position
@@ -23,13 +26,13 @@ local player = {
 -- Define blocks in the grid
 local blocks = {
     {x = 3, y = 3, type = 2},  -- Block 1
-    {x = 4, y = 3, type = 2},  -- Block 2
-    {x = 3, y = 4, type = 2},  -- Block 3
-    {x = 4, y = 4, type = 2}   -- Block 4
+    --{x = 4, y = 3, type = 2},  -- Block 2
+    --{x = 3, y = 4, type = 2},  -- Block 3
+    --{x = 4, y = 4, type = 2}   -- Block 4
 }
 local cat = {
-    x = 2,
-    y = 2,
+    x = 5,
+    y = 5,
     type = 4  -- Identifier for the cat, 4 in this case
 }
 
@@ -55,22 +58,24 @@ function love.update(dt)
 end
 
 function love.draw()
-    for y = 1, #gameGrid do
-        for x = 1, #gameGrid[y] do
+    local cellSize = 32  -- Assuming each cell in the grid is 32x32 pixels
+    for y = 1, yMax do  -- Ensure we go to the edge of the grid
+        for x = 1, xMax do  -- Ensure we go to the edge of the grid
             local cell = gameGrid[y][x]
             if cell == 1 then
                 love.graphics.setColor(1, 0, 0)  -- Red for the player
-                love.graphics.rectangle('fill', (x-1) * 32, (y-1) * 32, 32, 32)
+                love.graphics.rectangle('fill', (x-1) * cellSize, (y-1) * cellSize, cellSize, cellSize)
             elseif cell == 2 then
                 love.graphics.setColor(0, 0, 1)  -- Blue for movable blocks
-                love.graphics.rectangle('fill', (x-1) * 32, (y-1) * 32, 32, 32)
+                love.graphics.rectangle('fill', (x-1) * cellSize, (y-1) * cellSize, cellSize, cellSize)
             elseif cell == 3 then
                 love.graphics.setColor(0.5, 0.5, 0.5)  -- Gray for unmovable blocks
-                love.graphics.rectangle('fill', (x-1) * 32, (y-1) * 32, 32, 32)
+                love.graphics.rectangle('fill', (x-1) * cellSize, (y-1) * cellSize, cellSize, cellSize)
             elseif cell == 4 then
                 love.graphics.setColor(1, 0, 1)  -- Magenta for the cat
-                love.graphics.rectangle('fill', (x-1) * 32, (y-1) * 32, 32, 32)
+                love.graphics.rectangle('fill', (x-1) * cellSize, (y-1) * cellSize, cellSize, cellSize)
             end
+            -- Empty cells are automatically skipped as there is no drawing command for them
         end
     end
 end
@@ -78,38 +83,6 @@ end
 
 
 
-function moveTo(object, newX, newY)
-    if newX < 1 or newX > xMax or newY < 1 or newY > yMax then
-        return false
-    end
-
-    local nextCell = gameGrid[newY][newX]
-
-    if nextCell == 3 then  -- Check for unmovable blocks
-        return false  -- Can't move into unmovable blocks
-    elseif nextCell == 2 then  -- Check for movable blocks
-        local pushX = newX + (newX - object.x)
-        local pushY = newY + (newY - object.y)
-        if pushX < 1 or pushX > xMax or pushY < 1 or pushY > yMax or gameGrid[pushY][pushX] ~= 0 then
-            return false  -- Can't push the block, so don't move
-        else
-            -- Move the block
-            gameGrid[pushY][pushX] = 2
-            gameGrid[newY][newX] = 0
-        end
-    end
-
-    if gameGrid[newY][newX] == 0 then
-        -- Move the object
-        gameGrid[object.y][object.x] = 0
-        object.x = newX
-        object.y = newY
-        gameGrid[newY][newX] = object.type
-        return true
-    end
-
-    return false
-end
 
 
 
@@ -119,25 +92,61 @@ for _, block in ipairs(blocks) do
 end
 
 function canMoveTo(x, y)
-    -- Check bounds for the 20x20 grid
+    -- Check bounds for the game grid
     if x < 1 or x > xMax or y < 1 or y > yMax then
         return false
     end
 
-    return gameGrid[y][x] == 0
+    local cell = gameGrid[y][x]
+    return cell == 0 or cell == 2  -- Can move to an empty cell or push a block
 end
 
+
 function moveTo(object, newX, newY)
-    if canMoveTo(newX, newY) then
-        -- Update the grid: Mark the old position as empty
-        gameGrid[object.y][object.x] = 0
-        -- Move the object
+    -- Check bounds for the game grid
+    if newX < 1 or newX > xMax or newY < 1 or newY > yMax then
+        return false
+    end
+
+    local nextCell = gameGrid[newY][newX]
+
+    -- Handling unmovable blocks
+    if nextCell == 3 then
+        return false  -- Can't move into unmovable blocks
+    end
+
+    -- Handling movable blocks
+    if nextCell == 2 then
+        local pushX = newX + (newX - object.x)
+        local pushY = newY + (newY - object.y)
+
+        -- Check if the block can be pushed and if the next position is empty
+        if pushX >= 1 and pushX <= xMax and pushY >= 1 and pushY <= yMax and gameGrid[pushY][pushX] == 0 then
+            -- Push the block
+            gameGrid[pushY][pushX] = 2  -- Move the block to the new position
+            gameGrid[newY][newX] = object.type  -- Move the player to the block's old position
+            gameGrid[object.y][object.x] = 0  -- Set the player's old position to empty
+            object.x = newX
+            object.y = newY
+            return true
+        else
+            return false  -- Can't push the block, so don't move
+        end
+    end
+
+    -- Move the object if the next cell is empty
+    if nextCell == 0 then
+        gameGrid[object.y][object.x] = 0  -- Set the old position to empty
         object.x = newX
         object.y = newY
-        -- Update the grid with the object's new position
-        gameGrid[newY][newX] = object.type -- object.type could be an identifier for what the object is
+        gameGrid[newY][newX] = object.type  -- Set the new position to the object's type
+        return true
     end
+
+    return false
 end
+
+
 
 function love.keypressed(key, scancode, isrepeat)
     local dx, dy = 0, 0
@@ -162,8 +171,5 @@ function love.keypressed(key, scancode, isrepeat)
     local newX = player.x + dx
     local newY = player.y + dy
 
-    -- Only move the player if the new position is within bounds
-    if canMoveTo(newX, newY) then
-        moveTo(player, newX, newY)
-    end
+    moveTo(player, newX, newY)  -- Attempt to move the player
 end
