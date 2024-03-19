@@ -149,6 +149,14 @@ function love.keypressed(key, scancode, isrepeat)
         dy = 1
     elseif scancode == "w" then
         dy = -1
+    elseif scancode == "up" then
+        dy = -1
+    elseif scancode == "left" then
+        dx = -1
+    elseif scancode == "right" then
+        dx = 1
+    elseif scancode == "down" then
+        dy = 1
     end
 
     local newX = player.x + dx
